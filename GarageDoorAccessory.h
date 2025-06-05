@@ -10,9 +10,8 @@ private:
   int doorPin, lightPin, reedPin;
   unsigned long lightTimeoutMs;
 
-  bool lastReedState = true;  // true = closed (since NC), assumes closed at boot
+  bool lastReedState = true;  // true = closed, assume door closed at boot
 
-  Characteristic::Name *accessoryName;
   SpanCharacteristic *currentState;
   SpanCharacteristic *targetState;
   SpanCharacteristic *obstruction;
@@ -29,21 +28,23 @@ private:
 
 public:
   GarageDoorAccessory(const char *name, int doorPin, int lightPin, int reedPin, unsigned long lightTimeoutMs) :
-    Service::AccessoryInformation(),
-    name(name),
-    doorPin(doorPin), lightPin(lightPin), reedPin(reedPin), lightTimeoutMs(lightTimeoutMs)
-  {
-    accessoryName = new Characteristic::Name(name);
-    new Characteristic::Manufacturer("SmartGarage");
-    new Characteristic::Model("Garage+Light");
+    name(name), doorPin(doorPin), lightPin(lightPin), reedPin(reedPin), lightTimeoutMs(lightTimeoutMs) {
+
+    new SpanAccessory();
+
+    new Service::AccessoryInformation();
+    new Characteristic::Identify();
+    
+    new Characteristic::Name(name);
+    new Characteristic::Manufacturer("pbrewton");
+    new Characteristic::Model("SmartGarage");
     new Characteristic::SerialNumber("SG2025-" + String(doorPin));
-    new Characteristic::FirmwareRevision("1.0");
+    new Characteristic::FirmwareRevision("0.9");
 
     pinMode(doorPin, OUTPUT); digitalWrite(doorPin, LOW);
     pinMode(lightPin, OUTPUT); digitalWrite(lightPin, LOW);
-    pinMode(reedPin, INPUT_PULLUP);
+    pinMode(reedPin, INPUT);
 
-    // Garage Door Service
     new Service::GarageDoorOpener();
     currentState = new Characteristic::CurrentDoorState(Characteristic::CurrentDoorState::CLOSED);
     targetState = new Characteristic::TargetDoorState(Characteristic::TargetDoorState::CLOSED);
@@ -55,20 +56,13 @@ public:
     cycleCountChar = new Characteristic::Custom<int>(
       "19A10002-CA30-489F-898A-4D6CD54F9A65", 0, PERSISTENT, "Total Open/Close Events");
 
-    // Light Service
     new Service::LightBulb();
     lightOn = new Characteristic::On(false);
   }
 
   boolean update() override {
-    if (targetState->updated()) {
-      triggerDoor(HOMEKIT_EVENT);
-    }
-
-    if (lightOn->updated()) {
-      toggleLight(lightOn->getNewVal(), HOMEKIT_EVENT);
-    }
-
+    if (targetState->updated()) triggerDoor(HOMEKIT_EVENT);
+    if (lightOn->updated()) toggleLight(lightOn->getNewVal(), HOMEKIT_EVENT);
     return true;
   }
 
@@ -84,11 +78,8 @@ public:
     delay(DOOR_ACTIVE_MS);
     digitalWrite(doorPin, LOW);
 
-    int current = readReedClosed() ? Characteristic::CurrentDoorState::CLOSED
-                                   : Characteristic::CurrentDoorState::OPEN;
-
-    expectedFinalState = current == Characteristic::CurrentDoorState::CLOSED ?
-                         Characteristic::CurrentDoorState::OPEN : Characteristic::CurrentDoorState::CLOSED;
+    int current = readReedClosed() ? Characteristic::CurrentDoorState::CLOSED : Characteristic::CurrentDoorState::OPEN;
+    expectedFinalState = current == Characteristic::CurrentDoorState::CLOSED ? Characteristic::CurrentDoorState::OPEN : Characteristic::CurrentDoorState::CLOSED;
 
     currentState->setVal(Characteristic::CurrentDoorState::OPENING);
     targetState->setVal(expectedFinalState == Characteristic::CurrentDoorState::CLOSED ? 1 : 0);
@@ -96,7 +87,6 @@ public:
     doorCommandTime = millis();
     waitingForObstructionCheck = true;
 
-    // door motion = light on (and auto off after timeout)
     if (!lightManuallyOn) {
       toggleLight(true, SMARTGARAGE_EVENT);
       lightTurnOffTime = millis() + lightTimeoutMs;
@@ -111,9 +101,7 @@ public:
     logEvent(source, on ? "Light ON" : "Light OFF", name);
     lightOn->setVal(on);
 
-    if (on && !lightManuallyOn) {
-      lightTurnOffTime = millis() + lightTimeoutMs;
-    }
+    if (on && !lightManuallyOn) lightTurnOffTime = millis() + lightTimeoutMs;
   }
 
   void triggerDoorFromLoop() {
@@ -137,7 +125,7 @@ public:
 
     expectedFinalState = Characteristic::CurrentDoorState::OPEN;
     currentState->setVal(Characteristic::CurrentDoorState::OPENING);
-    targetState->setVal(0); // target OPEN
+    targetState->setVal(0);
 
     doorCommandTime = millis();
     waitingForObstructionCheck = true;
@@ -145,9 +133,13 @@ public:
     updateChangeMeta();
   }
 
+  bool isClosed() {
+    return readReedClosed();
+  }
+
 private:
   bool readReedClosed() {
-    return digitalRead(reedPin) == LOW;  // NC, LOW means closed
+    return digitalRead(reedPin) == LOW;
   }
 
   void updateChangeMeta() {
@@ -159,8 +151,7 @@ private:
     bool closed = readReedClosed();
     if (closed != lastReedState) {
       lastReedState = closed;
-      currentState->setVal(closed ? Characteristic::CurrentDoorState::CLOSED
-                                  : Characteristic::CurrentDoorState::OPEN);
+      currentState->setVal(closed ? Characteristic::CurrentDoorState::CLOSED : Characteristic::CurrentDoorState::OPEN);
       logEvent(EXTERNAL_EVENT, closed ? "Door Closed" : "Door Opened", name);
     }
   }
@@ -169,8 +160,7 @@ private:
     if (waitingForObstructionCheck && (millis() - doorCommandTime > DOOR_OBSTRUCT_TIMEOUT)) {
       bool match = readReedClosed() == (expectedFinalState == Characteristic::CurrentDoorState::CLOSED);
       obstruction->setVal(!match);
-      if (!match)
-        WEBLOG("[SmartGarage] Obstruction Detected on %s", name);
+      if (!match) WEBLOG("[SmartGarage] Obstruction Detected on %s", name);
       waitingForObstructionCheck = false;
     }
   }

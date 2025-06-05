@@ -11,18 +11,18 @@
 #define BIG_REED_PIN        14
 #define SMALL_REED_PIN      27
 
-#define CONTROL_PIN         0
+#define CONTROL_PIN         0   // built-in LED
 #define STATUS_PIN          5
 
-// --- Access Point Settings ---
+// --- WiFi Setup AP ---
 const char *AP_SSID     = "SmartGarage-setup";
 const char *AP_PASSWORD = "hookii123";
 
 // --- WebLog Settings ---
-#define WEBLOG_LEVEL   50
-#define NTP_SERVER     "pool.ntp.org"
-#define TIMEZONE       "UTC"
-#define WEBLOG_TAG     "log"
+#define WEBLOG_MAX_ENTRIES  50
+#define NTP_SERVER          "pool.ntp.org"
+#define TZ                  "UTC"
+#define WEBLOG_URL          "log"
 
 // --- Door Timing Configs ---
 #define DOOR_ACTIVE_MS       500             // Time GPIO stays HIGH to activate
