@@ -1,0 +1,45 @@
+# Arduino build files
+*.elf
+*.hex
+*.bin
+*.eep
+*.map
+*.lst
+*.d
+*.o
+*.a
+
+# Arduino backup files
+*~
+*.bak
+
+# Arduino libraries (if using local clones and don't want to track them)
+libraries/
+
+# macOS clutter
+.DS_Store
+
+# Windows clutter
+Thumbs.db
+desktop.ini
+
+# VSCode settings
+.vscode/
+
+# PlatformIO build artifacts
+.pio/
+pioenvs/
+.pioenvs/
+build/
+
+# Arduino IDE config
+*.ino.cpp
+*.ino.*
+*.sdf
+*.suo
+
+# Arduino IDE metadata (Windows)
+*.browse.VC.db
+
+# Board-specific output folders
+hardware/
