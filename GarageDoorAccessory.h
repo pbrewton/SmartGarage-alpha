@@ -26,6 +26,9 @@ private:
   bool lightManuallyOn = false;
   unsigned long lightTurnOffTime = 0;
 
+  unsigned long lastReedEvent = 0;
+  const unsigned long reedDebounceMs = 150;
+
 public:
   GarageDoorAccessory(const char *name, int doorPin, int lightPin, int reedPin, unsigned long lightTimeoutMs) :
     name(name), doorPin(doorPin), lightPin(lightPin), reedPin(reedPin), lightTimeoutMs(lightTimeoutMs) {
@@ -149,10 +152,19 @@ private:
 
   void checkReedSwitch() {
     bool closed = readReedClosed();
+    unsigned long now = millis();
     if (closed != lastReedState) {
-      lastReedState = closed;
-      currentState->setVal(closed ? Characteristic::CurrentDoorState::CLOSED : Characteristic::CurrentDoorState::OPEN);
-      logEvent(EXTERNAL_EVENT, closed ? "Door Closed" : "Door Opened", name);
+      if (now - lastReedEvent > reedDebounceMs) {
+        lastReedState = closed;
+        lastReedEvent = now;
+        currentState->setVal(closed ? Characteristic::CurrentDoorState::CLOSED : Characteristic::CurrentDoorState::OPEN);
+        logEvent(EXTERNAL_EVENT, closed ? "Door Closed" : "Door Opened", name);
+      } else {
+        WEBLOG("[SmartGarage] Reed Switch debounce ignored on %s | State: %s | Delta: %lu ms",
+               name,
+               closed ? "Closed" : "Opened",
+               now - lastReedEvent);
+      }
     }
   }
 
