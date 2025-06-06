@@ -43,3 +43,7 @@ build/
 
 # Board-specific output folders
 hardware/
+
+#misc
+compile-errors.txt
+*.old

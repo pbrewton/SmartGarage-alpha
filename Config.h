@@ -1,6 +1,10 @@
 // Config.h
 
 #pragma once
+#define MANUFACTURER    "pbrewton"
+#define MODEL           "SmartGarage"
+#define FIRMWARE        "0.9"
+#define SERIAL_NUM      "SG2025"
 
 // --- Pin Definitions ---
 #define BIG_DOOR_PIN        17
