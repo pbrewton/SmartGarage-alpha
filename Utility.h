@@ -13,6 +13,7 @@ inline String formatTime(time_t rawTime) {
 
 enum EventSource {
   HOMEKIT_EVENT,
+  HOOKII_EVENT,
   SMARTGARAGE_EVENT,
   EXTERNAL_EVENT
 };
@@ -21,6 +22,7 @@ inline void logEvent(EventSource source, const char *action, const char *target)
   const char *prefix = "";
   switch (source) {
     case HOMEKIT_EVENT:      prefix = "[HomeKit]"; break;
+    case HOOKII_EVENT:      prefix = "[Hookii]"; break;
     case SMARTGARAGE_EVENT:  prefix = "[SmartGarage]"; break;
     case EXTERNAL_EVENT:     prefix = "[External]"; break;
   }
