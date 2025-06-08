@@ -8,26 +8,57 @@
 CUSTOM_CHAR_STRING(LastChangeTime, 19A10001-CA30-489F-898A-4D6CD54F9A65, PR+PW+EV, "Last Door Open/Close");
 CUSTOM_CHAR_STRING(TotalEvents, 19A10002-CA30-489F-898A-4D6CD54F9A65, PR+PW+EV, "Total Open/Close Events");
 
+///////////////////////////////////////////////////
+///// Door & Light Button Pulsing Definitions /////
+//////////////////////////////////////////////////
+
+struct PulsePin {
+  int pin;
+  unsigned long duration;
+  bool pressed = false;
+  unsigned long startTime = 0;
+
+  PulsePin(int pin, unsigned long duration) : pin(pin), duration(duration) {
+    pinMode(pin, OUTPUT);
+    digitalWrite(pin, LOW);
+  }
+
+  void beginButtonPress() {
+    if (!pressed) {
+      LOG2("[DEBUG] Pin %d HIGH\n",pin);
+      digitalWrite(pin, HIGH);
+      startTime = millis();
+      pressed = true;
+    }
+  }
+
+  void endButtonPress() {
+    if (pressed && millis() - startTime >= duration) {
+      LOG2("[DEBUG] Pin %d LOW\n",pin);
+      digitalWrite(pin, LOW);
+      pressed = false;
+    }
+  }
+};
+
 ////////////////////////////////////////
 ///// GarageDoorLight Definitions /////
 //////////////////////////////////////
 
 struct DEV_GarageDoorLight : Service::LightBulb {
   const char *name;
-  int lightPin;
   unsigned long lightTimeoutMs;
-
+  PulsePin pulsePin;
+  
   SpanCharacteristic *lightOn;
+
   bool lightManuallyOn = false;
   unsigned long lightTurnOffTime = 0;
 
   DEV_GarageDoorLight(const char *name, int lightPin, unsigned long lightTimeoutMs)
-    : name(name), lightPin(lightPin), lightTimeoutMs(lightTimeoutMs) {
+    : name(name), lightTimeoutMs(lightTimeoutMs), pulsePin(lightPin, PULSE_ACTIVE_MS) {
 
-    pinMode(lightPin, OUTPUT);
-    digitalWrite(lightPin, LOW);
-
-    new Characteristic::Name(name);
+              new Characteristic::Name(name);
     lightOn = new Characteristic::On(false);
   }
 
@@ -39,29 +70,24 @@ struct DEV_GarageDoorLight : Service::LightBulb {
   //@@@ light is not turning of after timeout
   //@@@ also, convert this to milis() pulse instead of high/low, before troubleshooting above
   void loop() override {
+    pulsePin.endButtonPress();
     if (!lightManuallyOn && lightOn->getVal() && millis() > lightTurnOffTime) {
       toggle(false, true, SMARTGARAGE_EVENT);
     }
   }
 
   void toggle(bool on, bool viaTimer, EventSource source) {
-    digitalWrite(lightPin, on ? HIGH : LOW);
+    pulsePin.beginButtonPress();
     lightManuallyOn = (source == HOMEKIT_EVENT);
     if (viaTimer) {
       WEBLOG("[SmartGarage][timer] %s: %s", name, on ? "ON" : "OFF");//@@@ detect if homekit or not
     } else {
       WEBLOG("[SmartGarage][manual] %s: %s", name, on ? "ON" : "OFF");//@@@ detect if homekit or not
     }
-    lightOn->setVal(on);
+    lightOn->setVal(on);        // toggle virtual light switch state. good luck!
     if (on && !lightManuallyOn)
       lightTurnOffTime = millis() + lightTimeoutMs;
   }
-
-  /*
-  void triggerFromDoor() {
-    toggle(!lightOn->getVal(), SMARTGARAGE_EVENT);
-  }
-  */
 
   void turnOnTemporarily() {
     if (!lightManuallyOn) {
@@ -81,10 +107,9 @@ struct DEV_GarageDoorLight : Service::LightBulb {
 
 struct DEV_GarageDoor : Service::GarageDoorOpener {
   const char *name;
-  int doorPin, reedPin;
-
+  int reedPin;
+  PulsePin pulsePin;
   DEV_GarageDoorLight *light = nullptr;
-
   bool lastReedState = true;
 
   SpanCharacteristic *currentState;
@@ -96,27 +121,21 @@ struct DEV_GarageDoor : Service::GarageDoorOpener {
   unsigned long doorCommandTime = 0;
   bool waitingForObstructionCheck = false;
   int expectedFinalState;
-
   unsigned long lastReedEvent = 0;
-  const unsigned long reedDebounceMs = 150;
+  const unsigned long reedDebounceMs = REED_DEBOUNCE_MS;
 
   DEV_GarageDoor(const char *name, int doorPin, int reedPin)
-      : name(name), doorPin(doorPin), reedPin(reedPin) {
-
-    pinMode(doorPin, OUTPUT);
-    digitalWrite(doorPin, LOW);
+      : name(name), reedPin(reedPin), pulsePin(doorPin, PULSE_ACTIVE_MS) {
     pinMode(reedPin, INPUT);
 
-    new Characteristic::Name(name);
     lastReedState = readReedClosed();
-    currentState = new Characteristic::CurrentDoorState(
-      lastReedState ? Characteristic::CurrentDoorState::CLOSED : Characteristic::CurrentDoorState::OPEN);
-    targetState = new Characteristic::TargetDoorState(
-      lastReedState ? Characteristic::TargetDoorState::CLOSED : Characteristic::TargetDoorState::OPEN);
-    obstruction = new Characteristic::ObstructionDetected(false);
-    lastChangeChar = new Characteristic::LastChangeTime();
+                      new Characteristic::Name(name);
+    currentState =    new Characteristic::CurrentDoorState(lastReedState ? Characteristic::CurrentDoorState::CLOSED : Characteristic::CurrentDoorState::OPEN);
+    targetState =     new Characteristic::TargetDoorState(lastReedState ? Characteristic::TargetDoorState::CLOSED : Characteristic::TargetDoorState::OPEN);
+    obstruction =     new Characteristic::ObstructionDetected(false);
+    lastChangeChar =  new Characteristic::LastChangeTime();
     lastChangeChar->setVal(0);
-    cycleCountChar = new Characteristic::TotalEvents();
+    cycleCountChar =  new Characteristic::TotalEvents();
     cycleCountChar->setVal(0);
   }
 
@@ -130,15 +149,14 @@ struct DEV_GarageDoor : Service::GarageDoorOpener {
   }
 
   void loop() override {
+    pulsePin.endButtonPress();
     checkReedSwitch();
     checkObstructionTimeout();
   }
 
   void triggerDoor(EventSource source) {
     logEvent(source, "Started Opening/Closing", name);
-    digitalWrite(doorPin, HIGH);
-    delay(DOOR_ACTIVE_MS); //@@@ convert to millis() 
-    digitalWrite(doorPin, LOW);
+    pulsePin.beginButtonPress();
 
     int current = readReedClosed() ? Characteristic::CurrentDoorState::CLOSED : Characteristic::CurrentDoorState::OPEN;
     expectedFinalState = current == Characteristic::CurrentDoorState::CLOSED ? Characteristic::CurrentDoorState::OPEN : Characteristic::CurrentDoorState::CLOSED;
@@ -164,10 +182,9 @@ struct DEV_GarageDoor : Service::GarageDoorOpener {
     }
 
     logEvent(SMARTGARAGE_EVENT, "Half-Open Start", name);
-    digitalWrite(doorPin, HIGH); delay(DOOR_ACTIVE_MS); digitalWrite(doorPin, LOW); //@@@ milis() conversion
+    pulsePin.beginButtonPress();
     delay(HALF_OPEN_WAIT); //@@@ milis() conversion
-    digitalWrite(doorPin, HIGH); delay(DOOR_ACTIVE_MS); digitalWrite(doorPin, LOW); //@@@ milis() conversion
-
+    pulsePin.beginButtonPress();
     expectedFinalState = Characteristic::CurrentDoorState::OPEN;
     currentState->setVal(Characteristic::CurrentDoorState::OPENING);
     targetState->setVal(0);
@@ -188,22 +205,22 @@ private:
   }
 
   void updateChangeMeta() {
-    cycleCountChar->setVal(cycleCountChar->getVal<int>() + 1);
-    // lastChangeChar->setVal(formatTime(time(nullptr)).c_str());
+    cycleCountChar->setVal(cycleCountChar->getVal<int>() + 1);    // @@@set max and min (see serial monitor errors)  @@@view in EVE
+    // lastChangeChar->setVal(formatTime(time(nullptr)).c_str()); // @@@ was throwing an error, so disabled for now
   }
 
   void checkReedSwitch() {  //@@@ test if reed open/close changes the Home App door state
     bool closed = readReedClosed();
     unsigned long now = millis();
-    //WEBLOG("[DEBUG] Reed Switch %s: %s", name, closed ? "Closed" : "Opened");
+    //LOG2("[DEBUG] Reed Switch %s: %s\n",name,closed?"Closed":"Opened");
     if (closed != lastReedState) {
       if (now - lastReedEvent > reedDebounceMs) {
         lastReedState = closed;
         lastReedEvent = now;
         currentState->setVal(closed ? Characteristic::CurrentDoorState::CLOSED : Characteristic::CurrentDoorState::OPEN);
-        logEvent(EXTERNAL_EVENT, closed ? "Door Closed" : "Door Opened", name);
+        logEvent(EXTERNAL_EVENT, closed ? "Door Closed" : "Door Opened", name); //@@@ i think homekit and hookii triggers will also show "External" here, so this is not very useful
       } else {
-        WEBLOG("[SmartGarage] Reed Switch debounce ignored on %s | State: %s | Delta: %lu ms", name, closed ? "Closed" : "Opened", now - lastReedEvent);
+        LOG2("[DEBUG] Reed Switch debounce ignored on %s | State: %s | Delta: %lu ms\n", name, closed ? "Closed" : "Opened", now - lastReedEvent);
       }
     }
   }
@@ -231,6 +248,3 @@ private:
     }
   }
 };
-
-
-
