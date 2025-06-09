@@ -15,7 +15,7 @@
 #define DOOR1_LIGHT_PIN      2
 #define DOOR1_REED_PIN       14
 //#define DOOR1_LIGHT_TIMEOUT  300000         // ms (5 minutes)
-#define DOOR1_LIGHT_TIMEOUT  15000         // 15sec
+#define DOOR1_LIGHT_TIMEOUT  10000         // 10sec
 
 #define DOOR2_NAME          "Small Door"
 #define DOOR2_LIGHT_NAME    "Small Door Light"
@@ -24,7 +24,8 @@
 #define DOOR2_PIN            19
 #define DOOR2_LIGHT_PIN      18
 #define DOOR2_REED_PIN       27
-#define DOOR2_LIGHT_TIMEOUT  300000
+//#define DOOR2_LIGHT_TIMEOUT  300000
+#define DOOR2_LIGHT_TIMEOUT  10000
 
 #define CONTROL_PIN          0   // built-in LED
 #define STATUS_PIN           5
@@ -44,4 +45,4 @@ const char *AP_PASSWORD =   "hookii123";
 //#define DOOR_OBSTRUCT_TIMEOUT 30000          // Elapsed time after door open/close to check for obstruction (30 seconds)
 #define DOOR_OBSTRUCT_TIMEOUT   15000          // Elapsed time after door open/close to check for obstruction (15 seconds)
 #define HALF_OPEN_WAIT          4000           // How long before stopping a partial door open
-#define REED_DEBOUNCE_MS        200            // Milliseconds to debounce reed switch
+#define REED_DEBOUNCE_MS        1000            // Milliseconds to debounce reed switch
