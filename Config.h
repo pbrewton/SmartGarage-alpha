@@ -41,8 +41,8 @@ const char *AP_PASSWORD =   "hookii123";
 #define WEBLOG_URL          "log"
 
 // --- Door Timing Configs ---
-#define PULSE_ACTIVE_MS         500            // How long GPIO stays HIGH / Button is pressed
-//#define DOOR_OBSTRUCT_TIMEOUT 30000          // Elapsed time after door open/close to check for obstruction (30 seconds)
-#define DOOR_OBSTRUCT_TIMEOUT   15000          // Elapsed time after door open/close to check for obstruction (15 seconds)
-#define HALF_OPEN_WAIT          4000           // How long before stopping a partial door open
-#define REED_DEBOUNCE_MS        1000            // Milliseconds to debounce reed switch
+#define PULSE_ACTIVE_MS            500            // How long GPIO stays HIGH / Button is pressed
+//#define DOOR_OBSTRUCT_TIMEOUT_MS 30000          // Elapsed time after door open/close to check for obstruction (30 seconds)
+#define DOOR_OBSTRUCT_TIMEOUT_MS   15000          // Elapsed time after door open/close to check for obstruction (15 seconds)
+#define HALF_OPEN_WAIT_MS          4000           // How long before stopping a partial door open
+#define REED_DEBOUNCE_MS           1000           // Milliseconds to debounce reed switch

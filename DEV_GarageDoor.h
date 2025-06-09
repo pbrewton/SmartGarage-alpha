@@ -75,11 +75,7 @@ struct DEV_GarageDoorLight : Service::LightBulb {
   //@@@ also, convert this to milis() pulse instead of high/low, before troubleshooting above
   void loop() override {
     pulsePin.endButtonPress();
-    if (!lightManuallyOn && lightOn->getVal() && millis() > lightTurnOffTime) {
-      //toggle(false, true, SMARTGARAGE_EVENT);
-      WEBLOG("[SmartGarage][timer] %s: Turned OFF", name);
-      lightOn->setVal(false);
-    }
+    lightTurnOffTimer();
   }
 
   void toggle(bool on, bool viaTimer, EventSource source) {
@@ -107,9 +103,17 @@ struct DEV_GarageDoorLight : Service::LightBulb {
     }
   }
 
-  bool isOn() {
-    return lightOn->getVal();
+  void lightTurnOffTimer() {
+    if (!lightManuallyOn && lightOn->getVal() && millis() > lightTurnOffTime) {
+      //toggle(false, true, SMARTGARAGE_EVENT);
+      WEBLOG("[SmartGarage][timer] %s: Turned OFF", name);
+      lightOn->setVal(false);
+    }
   }
+
+//  bool isOn() {
+//    return lightOn->getVal();
+//  }
 };
 
 /////////////////////////////
@@ -134,6 +138,8 @@ struct DEV_GarageDoor : Service::GarageDoorOpener {
   int expectedFinalState;
   unsigned long lastReedEvent = 0;
   const unsigned long reedDebounceMs = REED_DEBOUNCE_MS;
+  bool halfOpenActive = false;
+  unsigned long halfOpenStartTime = 0;
 
   DEV_GarageDoor(const char *name, int doorPin, int reedPin)
       : name(name), reedPin(reedPin), pulsePin(doorPin, PULSE_ACTIVE_MS) {
@@ -177,8 +183,9 @@ struct DEV_GarageDoor : Service::GarageDoorOpener {
 
   void loop() override {
     pulsePin.endButtonPress();
-    checkReedSwitch();
-    checkObstructionTimeout();
+    monitorReedSwitch();
+    checkForObstruction();
+    halfOpenHelper();
   }
 
   void triggerDoor(EventSource source) {
@@ -217,22 +224,35 @@ struct DEV_GarageDoor : Service::GarageDoorOpener {
     }
 
     logEvent(SMARTGARAGE_EVENT, "Half-Open Start", name);
-    pulsePin.beginButtonPress();
-    delay(HALF_OPEN_WAIT); //@@@ milis() conversion
-    pulsePin.beginButtonPress();
-    expectedFinalState = Characteristic::CurrentDoorState::OPEN;
-    currentState->setVal(Characteristic::CurrentDoorState::OPENING);
-    targetState->setVal(0);
-
-    doorCommandTime = millis();
-    waitingForObstructionCheck = true;
+    pulsePin.beginButtonPress();  // 1 of 2 button presses
+    //delay(HALF_OPEN_WAIT_MS); //@@@ milis() conversion
+    halfOpenStartTime = millis();
+    halfOpenActive = true;
+    //expectedFinalState = Characteristic::CurrentDoorState::OPEN;
+    //currentState->setVal(Characteristic::CurrentDoorState::OPENING);
+    //targetState->setVal(0);
+    //doorCommandTime = millis();
+    //waitingForObstructionCheck = true;
 
     //updateChangeMeta();
   }
 
-  bool isClosed() {
-    return readReedClosed();
+  void halfOpenHelper() {
+    // Handle 2nd button press for halfOpen() routing
+    if (halfOpenActive && millis() - halfOpenStartTime >= HALF_OPEN_WAIT_MS) {
+        pulsePin.beginButtonPress();  // 2 of 2 button presses
+        expectedFinalState = Characteristic::CurrentDoorState::OPEN;
+        currentState->setVal(Characteristic::CurrentDoorState::OPENING);
+        targetState->setVal(0);
+        doorCommandTime = millis();
+        waitingForObstructionCheck = true;
+        halfOpenActive = false;
+    }
   }
+
+//  bool isClosed() {
+//    return readReedClosed();
+//  }
 
 private:
   bool readReedClosed() {
@@ -252,7 +272,7 @@ private:
   }
   */
 
-  void checkReedSwitch() {
+  void monitorReedSwitch() {
     bool state = readReedClosed();
     unsigned long now = millis();
     if (state != lastReedState) {
@@ -268,8 +288,8 @@ private:
     }
   }
 
-  void checkObstructionTimeout() {
-    if (waitingForObstructionCheck && (millis() - doorCommandTime > DOOR_OBSTRUCT_TIMEOUT)) {
+  void checkForObstruction() {
+    if (waitingForObstructionCheck && (millis() - doorCommandTime > DOOR_OBSTRUCT_TIMEOUT_MS)) {
       bool match = readReedClosed() == (expectedFinalState == Characteristic::CurrentDoorState::CLOSED);
       obstruction->setVal(!match);
       if (!match) {

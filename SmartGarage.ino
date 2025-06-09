@@ -1,7 +1,6 @@
 // SmartGarage.ino - Main Sketch
 
-
-//@@@ todo: test setting temp sensor to Name instead of ConfiguredName. same for lightbulb. check for warning in serial monitor
+//@@@ todo: test setting temp sensor to Name instead of Characteristic::ConfiguredName. same for lightbulb. check for warning in serial monitor
 
 #include <WiFi.h>
 #include "HomeSpan.h"
@@ -29,6 +28,9 @@ void setup() {
 
   homeSpan.begin(Category::Bridges,MODEL, MODEL, MODEL);
 
+  /////////////
+  // Bridge //
+  ///////////
   new SpanAccessory();
     new Service::AccessoryInformation();
       new Characteristic::Identify();
@@ -38,7 +40,6 @@ void setup() {
       new Characteristic::Model(MODEL);
       new Characteristic::FirmwareRevision(FIRMWARE);
 
-/*
   ///////////////////////////
   // (Big) Door 1 + Light //
   /////////////////////////
@@ -71,9 +72,10 @@ void setup() {
     auto smallLight = new DEV_GarageDoorLight(DOOR2_LIGHT_NAME, DOOR2_LIGHT_PIN, DOOR2_LIGHT_TIMEOUT);
     smallDoor->attachLight(smallLight);
 
+    //@@@ ask ChatGPT is better way of doing this - calling door open/close from loop()
   //  bigDoor = new GarageDoorAccessory("Big Door", BIG_DOOR_PIN, BIG_LIGHT_PIN, BIG_REED_PIN, BIG_LIGHT_TIMEOUT);
   //  smallDoor = new GarageDoorAccessory("Small Door", SMALL_DOOR_PIN, SMALL_LIGHT_PIN, SMALL_REED_PIN, SMALL_LIGHT_TIMEOUT);
-*/
+
 
   /////////////////////
   // Hookii Sensors //
@@ -119,7 +121,7 @@ void setup() {
         //  new Characteristic::StatusLowBattery(0);
 
 
-  /*  @@@ below is from 12-ServiceLoops.ino.  todo: migrate above to below's example, in DEV_Hookii.h
+ /*  // @@@ below is from example 12-ServiceLoops.ino.  todo: migrate above to below's example, in DEV_Hookii.h
 
   new SpanAccessory();
     new Service::AccessoryInformation();
@@ -132,7 +134,7 @@ void setup() {
       new Characteristic::Identify(); 
       new Characteristic::Name("Air Quality");  
     new DEV_AirQualitySensor();                                                          // Create an Air Quality Sensor (see DEV_Sensors.h for definition)
-  */
+ */
   
 
 
@@ -144,6 +146,6 @@ void loop() {
   // Example usage:
   // bigDoor->triggerDoorFromLoop();
   // smallDoor->triggerLightFromLoop();
-  // smallDoor->halfOpen();
+  // smallDoor->halfOpen(); //@@@ try this
 
 } // end of loop()
