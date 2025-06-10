@@ -4,19 +4,23 @@
 
 #include <WiFi.h>
 #include "HomeSpan.h"
+#include "WebServer8080.h"
 #include "Config.h"
 #include "Utility.h"
 #include "DEV_GarageDoor.h"
-#include "DEV_Hookii.h" 
+#include "DEV_Hookii.h"
 
 //GarageDoorAccessory *bigDoor;
 //GarageDoorAccessory *smallDoor;
+DEV_GarageDoor* smallDoorPtr = nullptr;
 
 void setup() {
   Serial.begin(115200);
 
   // DHCP Hostname
   WiFi.setHostname(MODEL);
+
+  homeSpan.setLogLevel(1);  // @@@ set to 0 for Prod
 
   homeSpan.setControlPin(CONTROL_PIN)
           .setStatusPin(STATUS_PIN);
@@ -27,6 +31,7 @@ void setup() {
           .setApPassword(AP_PASSWORD);
 
   homeSpan.begin(Category::Bridges,MODEL, MODEL, MODEL);
+  homeSpan.setConnectionCallback(setupWeb8080);
 
   /////////////
   // Bridge //
@@ -68,24 +73,36 @@ void setup() {
       new Characteristic::Model((std::string(MODEL) + " " + std::string(SUB_MODEL)).c_str());
       new Characteristic::FirmwareRevision(FIRMWARE);
 
-    auto smallDoor = new DEV_GarageDoor(DOOR2_NAME, DOOR2_PIN, DOOR2_REED_PIN);
+    //auto smallDoor = new DEV_GarageDoor(DOOR2_NAME, DOOR2_PIN, DOOR2_REED_PIN);
+    smallDoorPtr = new DEV_GarageDoor(DOOR2_NAME, DOOR2_PIN, DOOR2_REED_PIN);
     auto smallLight = new DEV_GarageDoorLight(DOOR2_LIGHT_NAME, DOOR2_LIGHT_PIN, DOOR2_LIGHT_TIMEOUT);
-    smallDoor->attachLight(smallLight);
-
-    //@@@ ask ChatGPT is better way of doing this - calling door open/close from loop()
-  //  bigDoor = new GarageDoorAccessory("Big Door", BIG_DOOR_PIN, BIG_LIGHT_PIN, BIG_REED_PIN, BIG_LIGHT_TIMEOUT);
-  //  smallDoor = new GarageDoorAccessory("Small Door", SMALL_DOOR_PIN, SMALL_LIGHT_PIN, SMALL_REED_PIN, SMALL_LIGHT_TIMEOUT);
+    //smallDoor->attachLight(smallLight);
+    smallDoorPtr->attachLight(smallLight);
 
 
   /////////////////////
   // Hookii Sensors //
   ///////////////////
+  /* @@@re-ename after door testing*/
   new SpanAccessory();
     new Service::AccessoryInformation();
       new Characteristic::Identify();
-      new Characteristic::Name("Hookii Sensors");
+      new Characteristic::Name("HookiiSensors");
+      new Characteristic::Model("ThisIsAtestModel");
+    new Service::ContactSensor();
+      new Characteristic::ConfiguredName("MowerStatus");
+      new Characteristic::ContactSensorState(1);
+      new Characteristic::StatusActive(1);
+      new Characteristic::StatusFault(0);
+      new Characteristic::StatusTampered(0);
+      new Characteristic::StatusLowBattery(1);
+    new Service::BatteryService();
+      new Characteristic::ConfiguredName("BatteryLevel");
+      new Characteristic::BatteryLevel(82);
+      new Characteristic::ChargingState(1);
+      new Characteristic::StatusLowBattery(0);
     new Service::TemperatureSensor();
-      new Characteristic::ConfiguredName("battery");
+      new Characteristic::ConfiguredName("batteryTemperature");
       new Characteristic::CurrentTemperature(29.0);
     new Service::TemperatureSensor();
       new Characteristic::ConfiguredName("knifeDiscMotor");
@@ -99,15 +116,39 @@ void setup() {
     new Service::TemperatureSensor();
       new Characteristic::ConfiguredName("rightDriveMotor");
       new Characteristic::CurrentTemperature(24.0);
+/*
+    new Service::Fan();
+      new Characteristic::ConfiguredName("Mower Status");
+      new Characteristic::Active(1);
+      new Characteristic::CurrentFanState(2);
+      new Characteristic::TargetFanState(1);
+      new Characteristic::RotationSpeed(30);
+        new Service::BatteryService();
+          new Characteristic::BatteryLevel(82);
+          new Characteristic::ChargingState(1);
+          new Characteristic::StatusLowBattery(0);
+*/
 
+/*
+    new Service::Switch();
+      new Characteristic::ConfiguredName("MowerStatus");
+      new Characteristic::On(false);
+        new Service::BatteryService();
+          new Characteristic::BatteryLevel(82);
+          new Characteristic::ChargingState(1);
+          new Characteristic::StatusLowBattery(0);
+*/
+
+/*
   new SpanAccessory();
     new Service::AccessoryInformation();
       new Characteristic::Identify();
-      new Characteristic::Name("Battery Level");
+      new Characteristic::Name("Hookii Battery Level");
     new Service::BatteryService();
       new Characteristic::BatteryLevel(75);
       new Characteristic::ChargingState(1);
       new Characteristic::StatusLowBattery(0);
+*/
 
   new SpanAccessory();
     new Service::AccessoryInformation();
@@ -115,10 +156,17 @@ void setup() {
       new Characteristic::Name("Mow-or-Charge");
     new Service::Switch();
       new Characteristic::On(false); // default to OFF - if switch
+      
         //new Service::BatteryService();
         //  new Characteristic::BatteryLevel(85);
         //  new Characteristic::ChargingState(1);
         //  new Characteristic::StatusLowBattery(0);
+/* @@@re-ename after door testing */
+
+
+
+
+
 
 
  /*  // @@@ below is from example 12-ServiceLoops.ino.  todo: migrate above to below's example, in DEV_Hookii.h
@@ -143,9 +191,26 @@ void setup() {
 } // end of setup()
 
 void loop() {
-  // Example usage:
-  // bigDoor->triggerDoorFromLoop();
-  // smallDoor->triggerLightFromLoop();
-  // smallDoor->halfOpen(); //@@@ try this
+  webServer.handleClient(); // http://localhost:8080
+
+  static bool hasCalledHalfOpen = false;
+  static bool hasCalledClose = false;
+  static unsigned long startMillis = millis();
+
+  if (!hasCalledHalfOpen && (millis() - startMillis > 25000)) {  // 10,000 ms = 10 seconds
+    if (smallDoorPtr) {
+      smallDoorPtr->halfOpen(HOOKII_EVENT);
+      hasCalledHalfOpen = true;
+      Serial.println("Called smallDoorPtr->halfOpen() after 20 seconds!");
+    }
+  }
+  if (!hasCalledClose && (millis() - startMillis > 60000)) {  // 10,000 ms = 10 seconds
+    if (smallDoorPtr) {
+      smallDoorPtr->triggerDoorClose(HOOKII_EVENT);
+      hasCalledClose = true;
+      Serial.println("Called smallDoorPtr->triggerDoorClose() after 60 seconds!");
+    }
+  }
+
 
 } // end of loop()

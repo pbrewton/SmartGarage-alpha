@@ -18,14 +18,17 @@ enum EventSource {
   EXTERNAL_EVENT
 };
 
-inline void logEvent(EventSource source, const char *action, const char *target) {
-  const char *prefix = "";
+inline const char* logLabel(EventSource source) {
   switch (source) {
-    case HOMEKIT_EVENT:      prefix = "[HomeKit]"; break;
-    case HOOKII_EVENT:      prefix = "[Hookii]"; break;
-    case SMARTGARAGE_EVENT:  prefix = "[SmartGarage]"; break;
-    case EXTERNAL_EVENT:     prefix = "[External]"; break;
+    case HOMEKIT_EVENT:      return "[HomeKit]";
+    case HOOKII_EVENT:       return "[Hookii]";
+    case SMARTGARAGE_EVENT:  return "[SmartGarage]";
+    case EXTERNAL_EVENT:     return "[External]";
+    default:                 return "[Unknown]";
   }
+}
 
-  WEBLOG("%s %s: %s", prefix, action, target);
+inline void logEvent(EventSource source, const char *device, const char *msg) {
+  const char *prefix = logLabel(source);
+  WEBLOG("%s %s: %s", prefix, device, msg);
 }
