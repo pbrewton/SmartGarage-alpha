@@ -1,12 +1,174 @@
-// status_html.h
+// html.h
 #pragma once
-const char STATUS_HTML[] = R"rawliteral(
+
+const char HOME_HTML[] PROGMEM = R"rawliteral(
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Garage Door Opener</title>
+  <link rel="icon" type="image/png" href="https://icons.iconarchive.com/icons/pictogrammers/material/48/garage-icon.png">
+  <link rel="apple-touch-icon" href="https://icons.iconarchive.com/icons/pictogrammers/material/128/garage-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f0f2f5;
+      color: #333;
+      text-align: center;
+    }
+    h1 {
+      background: #2c3e50;
+      color: white;
+      padding: 1rem 0;
+      margin: 0;
+      font-size: 1.8rem;
+    }
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      padding: 1rem;
+      gap: 1rem;
+    }
+    .door-card {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      padding: 1rem;
+      width: 100%;
+      max-width: 300px;
+    }
+    .door-icon {
+      width: 100px;
+      height: 100px;
+      margin-bottom: 0.5rem;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .door-icon:active {
+      transform: scale(0.95);
+    }
+    .door-title {
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+    .status {
+      margin-top: 0.25rem;
+      font-size: 0.95rem;
+      color: #555;
+    }
+    .obstruction {
+      margin-top: 0.25rem;
+      font-size: 0.85rem;
+      color: #e74c3c;
+      height: 1.2em;
+      /* Reserve space */
+      visibility: hidden;
+      /* Initially hidden */
+    }
+  </style>
+</head>
+<body>
+  <h1>Garage Door Opener</h1>
+  <div class="container">
+    <div class="door-card" id="door1">
+      <img class="door-icon" id="icon1" src="https://cdn.jsdelivr.net/gh/templarian/MaterialDesign@master/svg/garage.svg" alt="Garage Door 1">
+      <div class="door-title" id="title1">DOOR #1</div>
+      <div class="status" id="status1">closed</div>
+      <div class="obstruction" id="obstruction1"></div>
+    </div>
+    <div class="door-card" id="door2">
+      <img class="door-icon" id="icon2" src="https://cdn.jsdelivr.net/gh/templarian/MaterialDesign@master/svg/garage-variant.svg" alt="Garage Door 2">
+      <div class="door-title" id="title2">DOOR #2</div>
+      <div class="status" id="status2">closed</div>
+      <div class="obstruction" id="obstruction2"></div>
+    </div>
+  </div>
+  <script>
+    const states = [{
+        status: "opening...",
+        icon1: "garage-open.svg",
+        icon2: "garage-open-variant.svg"
+      },
+      {
+        status: "open",
+        icon1: "garage-open.svg",
+        icon2: "garage-open-variant.svg"
+      },
+      {
+        status: "closing...",
+        icon1: "garage.svg",
+        icon2: "garage-variant.svg"
+      },
+      {
+        status: "open - failed to close",
+        icon1: "garage-alert.svg",
+        icon2: "garage-alert-variant.svg",
+        obstruction: true
+      },
+      {
+        status: "closing...",
+        icon1: "garage.svg",
+        icon2: "garage-variant.svg"
+      },
+      {
+        status: "closed",
+        icon1: "garage.svg",
+        icon2: "garage-variant.svg"
+      }
+    ];
+    let door1State = 5;
+    let door2State = 5;
+    function updateDoor(doorNum) {
+      let stateIndex;
+      if (doorNum === 1) {
+        door1State = (door1State + 1) % states.length;
+        stateIndex = door1State;
+      } else {
+        door2State = (door2State + 1) % states.length;
+        stateIndex = door2State;
+      }
+      const state = states[stateIndex];
+      const icon = document.getElementById(`icon${doorNum}`);
+      const status = document.getElementById(`status${doorNum}`);
+      const obstruction = document.getElementById(`obstruction${doorNum}`);
+      icon.src = `https://cdn.jsdelivr.net/gh/templarian/MaterialDesign@master/svg/${doorNum === 1 ? state.icon1 : state.icon2}`;
+      status.textContent = state.status;
+      if (state.obstruction) {
+        obstruction.textContent = "OBSTRUCTION DETECTED";
+        obstruction.style.visibility = "visible";
+      } else {
+        obstruction.textContent = "NO OBSTRUCTION"; // Keep same text for spacing
+        obstruction.style.visibility = "hidden";
+      }
+    }
+    document.getElementById("icon1").addEventListener("click", () => updateDoor(1));
+    document.getElementById("icon2").addEventListener("click", () => updateDoor(2));
+  </script>
+</body>
+</html>
+)rawliteral";
+
+/////////////////////////////
+////////////////////////////
+
+const char STATUS_HTML[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML>
 <html>
 <head>
 <title>Hookii Info</title>
 <!--<link rel="icon" href="data:,">-->
-<link rel="icon" type="image/png" href="https://hookii.com/cdn/shop/files/cfcf36df9eae04e27638b1d3a083e405.svg">
+<link rel="icon" type="image/png" href="https://icons.iconarchive.com/icons/icons8/ios7/48/Data-Combo-Chart-icon.png">
+<link rel="apple-touch-icon" href="https://icons.iconarchive.com/icons/icons8/ios7/128/Data-Combo-Chart-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <script>
 window.onload = function () {
   var charts = [];
@@ -31,7 +193,7 @@ window.onload = function () {
     animationEnabled: true,
     theme: "light2", // "light1", "light2", "dark1", "dark2"
     title:{
-      text: "CPU Utilization"
+      text: "Temperatures"
     },
     toolTip: toolTip,
     axisY: {
@@ -41,7 +203,7 @@ window.onload = function () {
     data: [{
       type: "splineArea", 
       showInLegend: "true",
-      name: "User",
+      name: "battery",
       yValueFormatString: "#0.#%",
       color: "#64b5f6",
       xValueType: "dateTime",
@@ -51,7 +213,7 @@ window.onload = function () {
     },{
       type: "splineArea", 
       showInLegend: "true",
-      name: "System",
+      name: "leftDriveMotor",
       yValueFormatString: "#0.#%",
       color: "#2196f3",
       xValueType: "dateTime",
@@ -61,7 +223,7 @@ window.onload = function () {
     },{
       type: "splineArea", 
       showInLegend: "true",
-      name: "Wait",
+      name: "rightDriveMotor",
       yValueFormatString: "#0.#%",
       color: "#1976d2",
       xValueType: "dateTime",
@@ -74,7 +236,7 @@ window.onload = function () {
     animationEnabled: true,
     theme: "light2",
     title:{
-      text: "Memory Usage"
+      text: "Battery / Charging"
     },
     axisY: {
       suffix: " GB"
@@ -84,7 +246,7 @@ window.onload = function () {
     data: [{
       type: "splineArea", 
       showInLegend: "true",
-      name: "Cache",
+      name: "battery %",
       color: "#e57373",
       xValueType: "dateTime",
       xValueFormatString: "DD MMM YY HH:mm",
@@ -94,7 +256,7 @@ window.onload = function () {
     },{
       type: "splineArea", 
       showInLegend: "true",
-      name: "Buffers",
+      name: "voltage",
       color: "#f44336",
       xValueType: "dateTime",
       xValueFormatString: "DD MMM YY HH:mm",
@@ -104,7 +266,7 @@ window.onload = function () {
     },{
       type: "splineArea", 
       showInLegend: "true",
-      name: "Used",
+      name: "dischargeCurrent",
       color: "#d32f2f",
       xValueType: "dateTime",
       xValueFormatString: "DD MMM YY HH:mm",
@@ -117,7 +279,7 @@ window.onload = function () {
     animationEnabled: true,
     theme: "light2",
     title:{
-      text: "Network Traffic"
+      text: "Other Shit"
     },
     axisY: {
       suffix: " Kb/s"
@@ -127,7 +289,7 @@ window.onload = function () {
     data: [{
       type: "splineArea", 
       showInLegend: "true",
-      name: "Outbound",
+      name: "mowingCoverageRate",
       color: "#81c784",
       xValueType: "dateTime",
       xValueFormatString: "DD MMM YY HH:mm",
@@ -137,7 +299,7 @@ window.onload = function () {
     },{
       type: "splineArea", 
       showInLegend: "true",
-      name: "Inbound",
+      name: "wifiSignal",
       color: "#388e3c",
       xValueType: "dateTime",
       xValueFormatString: "DD MMM YY HH:mm",
@@ -150,7 +312,7 @@ window.onload = function () {
     animationEnabled: true,
     theme: "light2",
     title:{
-      text: "Disk I/O (IOPS)"
+      text: "Even More Shit"
     },
     axisY: {},
     toolTip: toolTip,
@@ -158,7 +320,7 @@ window.onload = function () {
     data: [{
       type: "splineArea", 
       showInLegend: "true",
-      name: "Write",
+      name: "My Time Wasted",
       color: "#ffb74d",
       xValueType: "dateTime",
       xValueFormatString: "DD MMM YY HH:mm",
@@ -168,7 +330,7 @@ window.onload = function () {
     },{
       type: "splineArea", 
       showInLegend: "true",
-      name: "Read",
+      name: "knifeDiscMotorSpeed (RPM)",
       color: "#f57c00",
       xValueType: "dateTime",
       xValueFormatString: "DD MMM YY HH:mm",
@@ -323,6 +485,84 @@ window.onload = function () {
 </div>
 <script type="text/javascript" src="https://canvasjs.com/assets/script/jquery-1.11.1.min.js"></script>
 <script src="https://cdn.canvasjs.com/canvasjs.min.js"></script>
+</body>
+</html>
+)rawliteral";
+
+/////////////////////////////
+////////////////////////////
+
+const char UPDATE_HTML[] PROGMEM = R"rawliteral(
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>SmartGarage Firmware</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    html,body { margin:0; padding:15px; line-height:2; box-sizing:border-box; background:#222; color:#fff; font-family:sans-serif; }
+    h2, label, #log { width:100%; box-sizing:border-box; }
+    h2 { margin:15px 0 15px 0; font-size:1.3em; color:orange; }
+    label { margin-bottom:8px; }
+    #progressBar { width:100%; height:40px; }
+    #log { margin-top:1em; background:#111; padding:1em; border-radius:6px; min-height:300px; font-family:monospace; }
+    .btn { padding:8px 20px; margin:20px; font-size:2em; }
+  </style>
+</head>
+<body>
+  <h2>SmartGarage Firmware Update</h2>
+  <label style="white-space:nowrap;">
+  1) Select Firmware File: <input type="file" id="firmware" style="display:inline-block; max-width:65vw;"></label><br>
+  2) <button id="goBtn" class="btn">Go!</button>
+  <progress id="progressBar" value="0" max="100"></progress>
+  <div id="log">Waiting for firmware file...<br></div>
+  <script>
+    const fileInput = document.getElementById('firmware');
+    const goBtn = document.getElementById('goBtn');
+    const progressBar = document.getElementById('progressBar');
+    const logDiv = document.getElementById('log');
+
+    function log(msg) {
+      logDiv.innerHTML += msg + "<br>";
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    goBtn.onclick = function() {
+      if (!fileInput.files.length) {
+        log("No file selected!");
+        return;
+      }
+      fileInput.disabled = true;
+      goBtn.disabled = true;
+      progressBar.value = 0;
+      log("Uploading firmware...");
+      var file = fileInput.files[0];
+      var formData = new FormData();
+      formData.append("update", file);
+
+      var xhr = new XMLHttpRequest();
+      xhr.open("POST", "/upload", true);
+
+      xhr.upload.onprogress = function(event) {
+        if (event.lengthComputable) {
+          var percent = (event.loaded / event.total) * 100;
+          progressBar.value = percent;
+        }
+      };
+      xhr.onerror = function() {
+        log("Network error!");
+      };
+      xhr.onload = function() {
+        if (xhr.status == 200) {
+          log("Upload finished. Applying...");
+          setTimeout(function() {log(xhr.responseText)}, 2000);
+        } else {
+          log("Upload failed: HTTP " + xhr.status);
+        }
+      };
+      xhr.send(formData);
+    };
+  </script>
 </body>
 </html>
 )rawliteral";

@@ -10,8 +10,9 @@
 #include "DEV_GarageDoor.h"
 #include "DEV_Hookii.h"
 
-//GarageDoorAccessory *bigDoor;
-//GarageDoorAccessory *smallDoor;
+//#include "Debug_TaskStats.h"
+//#include "Debug_MemReporting.h"
+
 DEV_GarageDoor* smallDoorPtr = nullptr;
 
 void setup() {
@@ -20,15 +21,15 @@ void setup() {
   // DHCP Hostname
   WiFi.setHostname(MODEL);
 
-  homeSpan.setLogLevel(1);  // @@@ set to 0 for Prod
+  homeSpan.setLogLevel(1);  // @@@ COMMENT OUT for Prod, so it defaults to 0
 
   homeSpan.setControlPin(CONTROL_PIN)
-          .setStatusPin(STATUS_PIN);
-
-  homeSpan.enableWebLog(WEBLOG_MAX_ENTRIES, NTP_SERVER, TZ, WEBLOG_URL);
-  homeSpan.enableAutoStartAP()
+          .setStatusPin(STATUS_PIN)
+          .enableWebLog(WEBLOG_MAX_ENTRIES, NTP_SERVER, TZ, WEBLOG_URL)
           .setApSSID(AP_SSID)
-          .setApPassword(AP_PASSWORD);
+          .setApPassword(AP_PASSWORD)
+  //        .setQRID("SMGA")            // QR Code & Tag generator: https://github.com/SimonGolms/homekit-code
+          .enableAutoStartAP();
 
   homeSpan.begin(Category::Bridges,MODEL, MODEL, MODEL);
   homeSpan.setConnectionCallback(setupWeb8080);
@@ -73,10 +74,8 @@ void setup() {
       new Characteristic::Model((std::string(MODEL) + " " + std::string(SUB_MODEL)).c_str());
       new Characteristic::FirmwareRevision(FIRMWARE);
 
-    //auto smallDoor = new DEV_GarageDoor(DOOR2_NAME, DOOR2_PIN, DOOR2_REED_PIN);
     smallDoorPtr = new DEV_GarageDoor(DOOR2_NAME, DOOR2_PIN, DOOR2_REED_PIN);
     auto smallLight = new DEV_GarageDoorLight(DOOR2_LIGHT_NAME, DOOR2_LIGHT_PIN, DOOR2_LIGHT_TIMEOUT);
-    //smallDoor->attachLight(smallLight);
     smallDoorPtr->attachLight(smallLight);
 
 
@@ -183,8 +182,6 @@ void setup() {
       new Characteristic::Name("Air Quality");  
     new DEV_AirQualitySensor();                                                          // Create an Air Quality Sensor (see DEV_Sensors.h for definition)
  */
-  
-
 
   homeSpan.autoPoll();
 
@@ -212,5 +209,7 @@ void loop() {
     }
   }
 
+//  printMemorySummaryEvery(5000); // Print stats every 5 seconds
+//  printTaskStatsEvery(5000);     // Print stats every 5 seconds
 
 } // end of loop()

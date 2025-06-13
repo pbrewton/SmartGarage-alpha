@@ -212,7 +212,7 @@ struct DEV_GarageDoor : Service::GarageDoorOpener {
 
   void triggerDoorClose(EventSource source) {
     if (readReedClosed()) {
-      WEBLOG("%s Close request received, but %s is already closed", logLabel(source), name);
+      WEBLOG("%s Close request received, but %s is already Closed", logLabel(source), name);
       return;
     }
     pulsePin.beginButtonPress();
@@ -228,7 +228,7 @@ struct DEV_GarageDoor : Service::GarageDoorOpener {
 
   void halfOpen(EventSource source) {
     if (!readReedClosed()) {
-      WEBLOG("%s Half-Open request received, but %s is already open", logLabel(source), name);
+      WEBLOG("%s Half-Open request received, but %s is already Open", logLabel(source), name);
       return;
     }
 

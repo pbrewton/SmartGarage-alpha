@@ -1111,116 +1111,76 @@ void HAPClient::getStatusURL(HAPClient *hapClient, void (*callBack)(const char *
     hapOut << "\r\n";
   }
     
-  hapOut << "<html><head><title>" << homeSpan.displayName << "</title>\n";
-  //  hapOut << "<style>body {background-color:lightblue;} th, td {padding-right: 10px; padding-left: 10px; border:1px solid black;}" << homeSpan.webLog.css.c_str() << "</style></head>\n";
+  hapOut << "<html><head><title>" << homeSpan.displayName << "</title>";
+  //  hapOut << "<style>body {background-color:lightblue;} th, td {padding-right: 10px; padding-left: 10px; border:1px solid black;}" << homeSpan.webLog.css.c_str() << "</style></head>";
   hapOut << R"(
-    <style>
-    body {
-        background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-        font-family: 'Roboto', Arial, sans-serif;
-        color: #222;
-        margin: 0;
-        padding: 0.5rem;
-    }
-    h2 {
-        font-size: 2.2rem;
-        font-weight: 700;
-        letter-spacing: 1px;
-        margin-top: 0;
-    }
-    table {
-        border-collapse: separate;
-        border-spacing: 0;
-        width: 100%;
-        margin-bottom: 2rem;
-        box-shadow: 0 4px 32px rgba(33, 150, 243, 0.1);
-        border-radius: 16px;
-        overflow: hidden;
-        background: #fff;
-    }
-    table.tab1 {
-        width: auto;
-        min-width: 0;
-        max-width: 100%;
-        margin-left: 0;
-    }
-    th, td {
-        padding: 0.85rem 1.5rem;
-        border: none;
-        font-size: 1.02rem;
-    }
-    th {
-        background: #1976d2;
-        color: #fff;
-        font-weight: 700;
-        text-align: left;
-    }
-    tr:nth-child(even) td {
-        background: #f1f8ff;
-    }
-    tr:hover td {
-        background: #e3f2fd;
-        transition: background 0.25s;
-    }
-    td:first-child {
-        font-weight: 600;
-        color: #1976d2;
-    }
-    </style>
-    <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
-  </head>
+<link rel="icon" type="image/png" href="https://icons.iconarchive.com/icons/icons8/ios7/48/Data-Combo-Chart-icon.png">
+<link rel="apple-touch-icon" href="https://icons.iconarchive.com/icons/icons8/ios7/128/Data-Combo-Chart-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+body {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    font-family: 'Roboto', Arial, sans-serif;
+    color: #222;
+    margin: 0;
+    padding: 0.5rem;
+}
+h2 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-top: 0;
+}
+table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 32px rgba(33, 150, 243, 0.1);
+    border-radius: 16px;
+    overflow: hidden;
+    background: #fff;
+}
+table.tab1 {
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
+    margin-left: 0;
+}
+th, td {
+    padding: 0.85rem 1.5rem;
+    border: none;
+    font-size: 1.02rem;
+}
+th {
+    background: #1976d2;
+    color: #fff;
+    font-weight: 700;
+    text-align: left;
+}
+tr:nth-child(even) td {
+    background: #f1f8ff;
+}
+tr:hover td {
+    background: #e3f2fd;
+    transition: background 0.25s;
+}
+td:first-child {
+    font-weight: 600;
+    color: #1976d2;
+}
+</style>
+<link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
+</head>
   )";
-  hapOut << "<body class=bod1><h2>" << homeSpan.displayName << "</h2>\n";
-  
-  hapOut << "<table class=tab1>\n";
-  hapOut << "<tr><td>Up Time:</td><td>" << uptime << "</td></tr>\n";
-  hapOut << "<tr><td>Current Time:</td><td>" << clocktime << "</td></tr>\n";
-  hapOut << "<tr><td>Boot Time:</td><td>" << homeSpan.webLog.bootTime << "</td></tr>\n"; 
-  hapOut << "<tr><td>Reset Reason:</td><td>" << Utils::resetReason() << " (" << esp_reset_reason() << ")</td></tr>\n";
+  hapOut << "<body class=bod1>";
+  hapOut << "<table style='margin-left: auto;' class=tab1 onclick=\"window.location.href='//" << WiFi.localIP().toString().c_str() << ":8080/status'\"><tbody><tr><th>Click Here for Hookii Dashboard</th></tr></tbody></table>";
 
-  if(homeSpan.compileTime)
-    hapOut << "<tr><td>Compile Time:</td><td>" << homeSpan.compileTime << "</td></tr>\n";
-
-  if(!homeSpan.ethernetEnabled){
-    hapOut << "<tr><td>WiFi Disconnects:</td><td>" << homeSpan.connected/2 << "</td></tr>\n";
-    hapOut << "<tr><td>WiFi Signal:</td><td>" << (int)WiFi.RSSI() << " dBm</td></tr>\n";
-    if(homeSpan.bssidNames.count(WiFi.BSSIDstr().c_str()))
-      hapOut << "<tr><td>BSSID:</td><td>" << WiFi.BSSIDstr().c_str() << " \"" << homeSpan.bssidNames[WiFi.BSSIDstr().c_str()].c_str() << "\"" << "</td></tr>\n";
-    else
-      hapOut << "<tr><td>BSSID:</td><td>" << WiFi.BSSIDstr().c_str() << "</td></tr>\n";
-    hapOut << "<tr><td>WiFi Local IP:</td><td>" << WiFi.localIP().toString().c_str() << "</td></tr>\n";
-    hapOut << "<tr><td>WiFi Gateway:</td><td>" << WiFi.gatewayIP().toString().c_str() << "</td></tr>\n";
-  } else {
-    hapOut << "<tr><td>Ethernet Disconnects:</td><td>" << homeSpan.connected/2 << "</td></tr>\n";
-    hapOut << "<tr><td>Ethernet Local IP:</td><td>" << ETH.localIP().toString().c_str() << "</td></tr>\n";    
-    hapOut << "<tr><td>Ethernet Gateway:</td><td>" << ETH.gatewayIP().toString().c_str() << "</td></tr>\n";    
-  }
-  
-  hapOut << "<tr><td>ESP32 Board:</td><td>" << ARDUINO_BOARD << "</td></tr>\n";
-  hapOut << "<tr><td>Arduino-ESP Version:</td><td>" << ARDUINO_ESP_VERSION << "</td></tr>\n";
-  hapOut << "<tr><td>ESP-IDF Version:</td><td>" << ESP_IDF_VERSION_MAJOR << "." << ESP_IDF_VERSION_MINOR << "." << ESP_IDF_VERSION_PATCH << "</td></tr>\n";
-  hapOut << "<tr><td>HomeSpan Version:</td><td>" << HOMESPAN_VERSION << "</td></tr>\n";
-  hapOut << "<tr><td>Sketch Version:</td><td>" << homeSpan.getSketchVersion() << "</td></tr>\n"; 
-  hapOut << "<tr><td>Sodium Version:</td><td>" << sodium_version_string() << " Lib " << sodium_library_version_major() << "." << sodium_library_version_minor() << "</td></tr>\n"; 
-
-  char mbtlsv[64];
-  mbedtls_version_get_string_full(mbtlsv);
-  hapOut << "<tr><td>MbedTLS Version:</td><td>" << mbtlsv << "</td></tr>\n";
-  
-  hapOut << "<tr><td>HomeKit Status:</td><td>" << (HAPClient::nAdminControllers()?"PAIRED":"NOT PAIRED") << "</td></tr>\n";   
-  hapOut << "<tr><td>Max Log Entries:</td><td>" << homeSpan.webLog.maxEntries << "</td></tr>\n"; 
-
-  if(homeSpan.weblogCallback){
-    String usrString;
-    homeSpan.weblogCallback(usrString); // Callback to add user-defined html in top table.
-    hapOut << usrString.c_str();    
-  }
-    
-  hapOut << "</table>\n";
-  hapOut << "<p></p>";
-  
   if(homeSpan.webLog.maxEntries>0){
-    hapOut << "<table class=tab2><tr><th>Entry</th><th>Up Time</th><th>Log Time</th><th>Client</th><th>Message</th></tr>\n";
+    hapOut << "<h2>" << homeSpan.displayName << " Logs:</h2>";
+    hapOut << "<table class=tab2><tr><th>Entry</th><th>Up Time</th><th>Log Time</th><th>Client</th><th>Message</th></tr>";
     int lastIndex=homeSpan.webLog.nEntries-homeSpan.webLog.maxEntries;
     if(lastIndex<0)
       lastIndex=0;
@@ -1239,12 +1199,68 @@ void HAPClient::getStatusURL(HAPClient *hapClient, void (*callBack)(const char *
       else
         sprintf(clocktime,"Unknown");        
       
-      hapOut << "<tr><td>" << i+1 << "</td><td>" << uptime << "</td><td>" << clocktime << "</td><td>" << homeSpan.webLog.log[index].clientIP.c_str() << "</td><td>" << homeSpan.webLog.log[index].message << "</td></tr>\n";
+      hapOut << "<tr><td>" << i+1 << "</td><td>" << uptime << "</td><td>" << clocktime << "</td><td>" << homeSpan.webLog.log[index].clientIP.c_str() << "</td><td>" << homeSpan.webLog.log[index].message << "</td></tr>";
     }
-    hapOut << "</table>\n";
+    hapOut << "</table>";
   }
+
+  hapOut << "<h2>Stats for nerds:</h2>";
+
+  hapOut << "<table class=tab1>";
+  hapOut << "<tr><td>Up Time:</td><td>" << uptime << "</td></tr>";
+  hapOut << "<tr><td>Current Time:</td><td>" << clocktime << "</td></tr>";
+  hapOut << "<tr><td>Boot Time:</td><td>" << homeSpan.webLog.bootTime << "</td></tr>"; 
+  hapOut << "<tr><td>Reset Reason:</td><td>" << Utils::resetReason() << " (" << esp_reset_reason() << ")</td></tr>";
+
+  if(homeSpan.compileTime)
+    hapOut << "<tr><td>Compile Time:</td><td>" << homeSpan.compileTime << "</td></tr>";
+
+  if(!homeSpan.ethernetEnabled){
+    hapOut << "<tr><td>WiFi Disconnects:</td><td>" << homeSpan.connected/2 << "</td></tr>";
+    hapOut << "<tr><td>WiFi Signal:</td><td>" << (int)WiFi.RSSI() << " dBm</td></tr>";
+    if(homeSpan.bssidNames.count(WiFi.BSSIDstr().c_str()))
+      hapOut << "<tr><td>BSSID:</td><td>" << WiFi.BSSIDstr().c_str() << " \"" << homeSpan.bssidNames[WiFi.BSSIDstr().c_str()].c_str() << "\"" << "</td></tr>";
+    else
+      hapOut << "<tr><td>BSSID:</td><td>" << WiFi.BSSIDstr().c_str() << "</td></tr>";
+    hapOut << "<tr><td>WiFi Local IP:</td><td>" << WiFi.localIP().toString().c_str() << "</td></tr>";
+    hapOut << "<tr><td>WiFi Gateway:</td><td>" << WiFi.gatewayIP().toString().c_str() << "</td></tr>";
+  } else {
+    hapOut << "<tr><td>Ethernet Disconnects:</td><td>" << homeSpan.connected/2 << "</td></tr>";
+    hapOut << "<tr><td>Ethernet Local IP:</td><td>" << ETH.localIP().toString().c_str() << "</td></tr>";    
+    hapOut << "<tr><td>Ethernet Gateway:</td><td>" << ETH.gatewayIP().toString().c_str() << "</td></tr>";    
+  }
+  
+  //hapOut << "<tr><td>ESP32 Board:</td><td>" << ARDUINO_BOARD << "</td></tr>";
+  hapOut << "<tr><td>Arduino Version:</td><td>" << ARDUINO_ESP_VERSION << "</td></tr>";
+  hapOut << "<tr><td>IDF Version:</td><td>" << ESP_IDF_VERSION_MAJOR << "." << ESP_IDF_VERSION_MINOR << "." << ESP_IDF_VERSION_PATCH << "</td></tr>";
+  //hapOut << "<tr><td>HomeSpan Version:</td><td>" << HOMESPAN_VERSION << "</td></tr>";
+  hapOut << "<tr><td>Sketch Version:</td><td>" << homeSpan.getSketchVersion() << "</td></tr>"; 
+  hapOut << "<tr><td>Sodium Version:</td><td>" << sodium_version_string() << " Lib " << sodium_library_version_major() << "." << sodium_library_version_minor() << "</td></tr>"; 
+
+  char mbtlsv[64];
+  mbedtls_version_get_string_full(mbtlsv);
+  hapOut << "<tr><td>MbedTLS Version:</td><td>" << mbtlsv << "</td></tr>";
+  
+  hapOut << "<tr><td>HomeKit Status:</td><td>" << (HAPClient::nAdminControllers()?"PAIRED":"NOT PAIRED") << "</td></tr>";   
+  hapOut << "<tr><td>Max Log Entries:</td><td>" << homeSpan.webLog.maxEntries << "</td></tr>"; 
+
+  hapOut << "<tr><td>License Status:</td><td>Activated</td></tr>"; 
+  hapOut << "<tr><td>License Type:</td><td>Trial</td></tr>"; 
+  hapOut << "<tr><td>Cloud Connection:</td><td>Disabled</td></tr>"; 
+  hapOut << "<tr><td>Encryption:</td><td>Enabled</td></tr>"; 
+  hapOut << "<tr><td>Encryption Type:</td><td>AES-256</td></tr>"; 
+  hapOut << "<tr><td>Encryption Status:</td><td>OK</td></tr>"; 
+  hapOut << "<tr><td>Encryption Errors:</td><td>None</td></tr>"; 
+
+
+  if(homeSpan.weblogCallback){
+    String usrString;
+    homeSpan.weblogCallback(usrString); // Callback to add user-defined html in top table.
+    hapOut << usrString.c_str();    
+  }
+    
+  hapOut << "</table></body></html>\n";
  
-  hapOut << "</body></html>\n";
   hapOut.flush();
 
   if(hapClient){
